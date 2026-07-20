@@ -4,14 +4,14 @@ import router from './routes.js';
 const app = express();
 const PORT = 3002;
 
-//  שימוש במסלולים מהמודול החיצוני
+app.use(express.json());
 app.use(router);
 
 // 404
 app.use((req, res) => {
-  res.status(404).send('<h1>404 — הדף לא נמצא</h1>');
+  res.status(404).json({ error: 'Not found' });
 });
 
 app.listen(PORT, () => {
-  console.log(`השרת רץ — פתח את הדפדפן בכתובת http://localhost:${PORT}`);
+  console.log(`Server running at http://localhost:${PORT}`);
 });

@@ -1,39 +1,120 @@
 import { Router } from 'express';
-import arr from './data.js';
+import { students, availableCourses } from './data.js';
 
 const router = Router();
 
-//  GET  —  דף הבית
+// ── helper: find student or send 404 ──────────────────────────
+function findStudent(req, res) {
+  const student = students.find(s => s.id === Number(req.params.id));
+  if (!student) {
+    res.status(404).json({ error: 'Student not found' });
+    return null;
+  }
+  return student;
+}
+
+// ── GET  /                     — home page ────────────────────
 router.get('/', (req, res) => {
   res.send(`
-    <h1>שלום! זוהי דוגמת שרת HTTP</h1>
-    <p><a href="/about">אודות</a></p>
+    <h1>Students API</h1>
+    <p>Visit <a href="/api/students">/api/students</a> for the student list (JSON).</p>
   `);
 });
 
-//  GET  —  דף אודות
-router.get('/about', (req, res) => {
-  const colors = ['#e74c3c', '#3498db', '#2ecc71', '#f39c12'];
-  const html = `
-    <h1 style="font-family: Arial;">רשימת פריטים</h1>
-    <ul style="list-style: none; padding: 0; font-family: Arial;">
-      ${arr.map((item, i) => `
-        <li style="
-          background: ${colors[i % colors.length]};
-          color: white;
-          padding: 12px 16px;
-          margin: 8px 0;
-          border-radius: 8px;
-          font-size: 18px;
-        ">
-          <strong>${item.name}</strong> (${item.id})<br>
-          <span style="font-size: 14px; opacity: 0.9;">${item.Description}</span>
-        </li>
-      `).join('')}
-    </ul>
-    <p><a href="/" style="font-family: Arial;">חזרה</a></p>
-  `;
-  res.send(html);
+// ══════════════════ STUDENTS CRUD ══════════════════════════════
+
+// GET    /api/students          — list all
+router.get('/api/students', (req, res) => {
+  res.json(students);
+});
+
+// GET    /api/students/:id      — get one
+router.get('/api/students/:id', (req, res) => {
+  const student = findStudent(req, res);
+  if (!student) return;
+  res.json(student);
+});
+
+// POST   /api/students          — create
+router.post('/api/students', (req, res) => {
+  const { name, courses } = req.body;
+  if (!name) {
+    return res.status(400).json({ error: '"name" is required' });
+  }
+  const newStudent = {
+    id: Date.now(),
+    name,
+    courses: courses || []
+  };
+  students.push(newStudent);
+  res.status(201).json(newStudent);
+});
+
+// PUT    /api/students/:id      — update
+router.put('/api/students/:id', (req, res) => {
+  const student = findStudent(req, res);
+  if (!student) return;
+
+  const { name, courses } = req.body;
+  if (name !== undefined) student.name = name;
+  if (courses !== undefined) student.courses = courses;
+
+  res.json(student);
+});
+
+// DELETE /api/students/:id      — delete
+router.delete('/api/students/:id', (req, res) => {
+  const index = students.findIndex(s => s.id === Number(req.params.id));
+  if (index === -1) {
+    return res.status(404).json({ error: 'Student not found' });
+  }
+  students.splice(index, 1);
+  res.json({ message: 'Student deleted' });
+});
+
+// ══════════════════ COURSES ════════════════════════════════════
+
+// GET    /api/courses           — list available courses
+router.get('/api/courses', (req, res) => {
+  res.json(availableCourses);
+});
+
+// POST   /api/students/:id/courses     — register for a course
+router.post('/api/students/:id/courses', (req, res) => {
+  const student = findStudent(req, res);
+  if (!student) return;
+
+  const { course } = req.body;
+  if (!course) {
+    return res.status(400).json({ error: '"course" is required' });
+  }
+  if (!availableCourses.includes(course)) {
+    return res.status(400).json({
+      error: `"${course}" is not an available course`,
+      availableCourses
+    });
+  }
+  if (student.courses.includes(course)) {
+    return res.status(409).json({ error: `Already registered for "${course}"` });
+  }
+
+  student.courses.push(course);
+  res.status(201).json({ message: `Registered for "${course}"`, student });
+});
+
+// DELETE /api/students/:id/courses/:course  — unregister
+router.delete('/api/students/:id/courses/:course', (req, res) => {
+  const student = findStudent(req, res);
+  if (!student) return;
+
+  const { course } = req.params;
+  const index = student.courses.indexOf(course);
+  if (index === -1) {
+    return res.status(404).json({ error: `Student is not registered for "${course}"` });
+  }
+
+  student.courses.splice(index, 1);
+  res.json({ message: `Unregistered from "${course}"`, student });
 });
 
 export default router;
