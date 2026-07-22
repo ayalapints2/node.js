@@ -1,4 +1,5 @@
-import { students, availableCourses } from '../data.js';
+import students from '../data/students.js';
+import availableCourses from '../data/courses.js';
 
 // ── Student CRUD ────────────────────────────────────────────
 
