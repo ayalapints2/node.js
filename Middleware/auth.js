@@ -1,7 +1,11 @@
 // Middleware לאימות API Key
 // רץ לפני כל בקשה נכנסת
 
-const VALID_API_KEYS = ['abc123', 'xyz789'];
+// המפתחות מותרים נטענים מקובץ .env (מופרדים בפסיקים)
+const VALID_API_KEYS = (process.env.VALID_API_KEYS || 'abc123,xyz789')
+  .split(',')
+  .map((k) => k.trim())
+  .filter(Boolean);
 
 function checkApiKey(req, res, next) {
   // לוג — להוכחה שה-middleware רץ בכל קריאה
